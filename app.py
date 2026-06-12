@@ -1,174 +1,131 @@
 import streamlit as st
-
 import pandas as pd
 import numpy as np
-
 import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import LinearRegression
 
-from tensorflow.keras.models import load_model
 
-
-# -----------------------
-# Title
-# -----------------------
-
-st.title(
-    "Tesla Stock Price Prediction using LSTM"
-)
-
+st.title("Tesla Stock Price Prediction")
 
 st.write(
-    "Deep Learning Time Series Forecasting Project"
+    "Stock price prediction using historical Tesla stock data"
 )
 
 
-
-# -----------------------
-# Load Model
-# -----------------------
-
-model = load_model(
-    "tesla_lstm_model.h5"
-)
-
-
-
-# -----------------------
-# Upload Dataset
-# -----------------------
-
-uploaded_file = st.file_uploader(
-    "Upload Tesla CSV File",
+file = st.file_uploader(
+    "Upload TSLA.csv",
     type=["csv"]
 )
 
 
-if uploaded_file is not None:
+if file:
+
+    df = pd.read_csv(file)
+
+    st.subheader("Dataset")
+    st.write(df.head())
 
 
-    df = pd.read_csv(uploaded_file)
+    df["Date"] = pd.to_datetime(df["Date"])
 
-
-    st.subheader(
-        "Dataset Preview"
-    )
-
-    st.write(
-        df.head()
-    )
-
-
-
-    df["Date"] = pd.to_datetime(
-        df["Date"]
-    )
-
-
-    df.set_index(
-        "Date",
-        inplace=True
-    )
-
-
-    # Graph
+    df=df.sort_values("Date")
 
 
     st.subheader(
-        "Tesla Closing Price"
+        "Tesla Closing Price Trend"
     )
 
 
-    fig = plt.figure(
-        figsize=(12,5)
-    )
+    fig, ax = plt.subplots()
 
-
-    plt.plot(
+    ax.plot(
+        df["Date"],
         df["Close"]
     )
 
-
     st.pyplot(fig)
-
 
 
     data=df[["Close"]]
 
 
-    scaler=MinMaxScaler(
-        feature_range=(0,1)
-    )
+    scaler=MinMaxScaler()
+
+    scaled=scaler.fit_transform(data)
 
 
-    scaled=scaler.fit_transform(
-        data
-    )
+    X=[]
+    y=[]
 
 
-    last_60_days = scaled[-60:]
+    for i in range(60,len(scaled)):
+
+        X.append(
+            scaled[i-60:i,0]
+        )
+
+        y.append(
+            scaled[i,0]
+        )
 
 
-    future=[]
+    X=np.array(X)
+
+    y=np.array(y)
 
 
-    temp=list(
-        last_60_days.reshape(-1)
-    )
+
+    model=LinearRegression()
+
+    model.fit(X,y)
+
+
+
+    last_60=scaled[-60:].reshape(1,-1)
+
+
+    predictions=[]
+
+
+    current=last_60.copy()
 
 
     for i in range(10):
 
+        pred=model.predict(current)
 
-        x=np.array(
-            temp[-60:]
-        )
+        predictions.append(pred[0])
 
-
-        x=x.reshape(
-            1,60,1
-        )
-
-
-        prediction=model.predict(x)
-
-
-        temp.append(
-            prediction[0][0]
-        )
-
-
-        future.append(
-            prediction[0][0]
+        current=np.append(
+            current[:,1:],
+            [[pred[0]]],
+            axis=1
         )
 
 
     result=scaler.inverse_transform(
 
-        np.array(future).reshape(-1,1)
+        np.array(predictions).reshape(-1,1)
 
     )
 
 
     st.subheader(
-        "Future Stock Prediction"
+        "Future Prediction"
     )
 
 
     st.write(
-        "Next Day Prediction:"
-    )
-
-    st.write(
+        "Next Day:",
         result[0][0]
     )
 
 
     st.write(
-        "Next 5 Days Prediction:"
+        "Next 5 Days:"
     )
-
 
     st.write(
         result[:5]
@@ -176,9 +133,8 @@ if uploaded_file is not None:
 
 
     st.write(
-        "Next 10 Days Prediction:"
+        "Next 10 Days:"
     )
-
 
     st.write(
         result
