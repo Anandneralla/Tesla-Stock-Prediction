@@ -1,8 +1,5 @@
-streamlit==1.41.1
-tensorflow==2.18.0
-keras==3.7.0
-numpy==1.26.4
-pandas==2.2.2
-matplotlib==3.9.2
-scikit-learn==1.5.2
-h5py==3.12.1
+streamlit
+pandas
+numpy
+matplotlib
+scikit-learn
